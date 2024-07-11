@@ -1,13 +1,18 @@
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, FacebookAuthProvider, sendPasswordResetEmail } from "firebase/auth";
+
+
 import { Button, Col, Image, Row, Modal, Form } from "react-bootstrap";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import useLocalStorage from "use-local-storage";
 import { useNavigate } from "react-router-dom";
 
+import { AuthContext } from "../components/AuthProvider";
+
 export default function AuthPage() {
     const loginImage = "https://sig1.co/img-twitter-1";
-    const url =
-        "https://58313eb4-d1a4-4353-8169-7e35efc691e5-00-14mnp0a3bw1g1.riker.replit.dev";
+    // const url =
+    //     "https://58313eb4-d1a4-4353-8169-7e35efc691e5-00-14mnp0a3bw1g1.riker.replit.dev";
 
 
     const [modalShow, setModalShow] = useState(null);
@@ -16,39 +21,89 @@ export default function AuthPage() {
     //username and password useaState
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [errorMessage, setErrorMessage] = useState(""); //error message is declared
     //token
     const [authToken, setAuthToken] = useLocalStorage("authToken", "");
 
     const navigate = useNavigate();
 
+    const auth = getAuth(); //from firebase 
+    const { currentUser } = useContext(AuthContext);
+
+
     useEffect(() => {
-        if (authToken) {
+        if (currentUser) {
             navigate("/profile");
         }
-    }, [authToken, navigate]);
+    }, [currentUser, navigate]);
 
     const handleSignUp = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`${url}/signup`, { username, password });
-            console.log(res.data);
+            const res = await createUserWithEmailAndPassword(auth, username, password);
+            console.log(res.user);
+            alert("sucessfully created an account")
         } catch (error) {
             console.error(error);
+            setErrorMessage("user name already exits")
         }
     };
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`${url}/login`, { username, password });
-            if (res.data && res.data.auth === true && res.data.token) {
-                setAuthToken(res.data.token); // Save token to localStorage.
-                console.log("Login was successful, token saved");
-            }
+            await signInWithEmailAndPassword(auth, username, password);
+            alert("successfull login")
+        }
+        catch (error) {
+            console.error(error);
+            setErrorMessage(" pshhh , wrong username or password")
+        }
+    };
+
+    const provider = new GoogleAuthProvider();
+    const handleGoogleLogin = async (e) => {
+        e.preventDefault();
+        try {
+            await signInWithPopup(auth, provider);
         } catch (error) {
             console.error(error);
         }
+    }
+
+
+    //fb login function using firebase 
+    const facebookProvider = new FacebookAuthProvider();
+    const handleFacebookLogin = async (e) => {
+        e.preventDefault();
+        try {
+            await signInWithPopup(auth, facebookProvider);
+        } catch (error) {
+            console.log(error);
+        }
+
+    }
+    ///password reset email and added the button 
+    const handlePasswordReset = async () => {
+        try {
+            await sendPasswordResetEmail(auth, username);
+            alert("Password reset email has been sent. Check your inbox.");
+        } catch (error) {
+            console.error(error);
+
+        }
     };
-    const handleClose = () => setModalShow(null);
+
+
+
+    //
+
+    const handleClose = () => {
+        setModalShow(null);
+        setErrorMessage("");
+    }
+
+    ////
+
     return (
         <Row>
             <Col sm={6}>
@@ -67,12 +122,17 @@ export default function AuthPage() {
                     Join Twitter today.
                 </h2>
                 <Col sm={5} className="d-grid gap-2">
-                    <Button className="rounded-pill" variant="outline-dark">
+                    <Button className="rounded-pill" variant="outline-dark" onClick={handleGoogleLogin}>
                         <i className="bi bi-google"></i> Sign up with Google
                     </Button>
                     <Button className="rounded-pill" variant="outline-dark">
                         <i className="bi bi-apple"></i> Sign up with Apple
                     </Button>
+                    <Button className="rounded-pill" variant="outline-dark" onClick={handleFacebookLogin}>
+                        <i className="bi bi-facebook"></i> Sign up with Facebook
+                    </Button>
+
+
                     <p style={{ textAlign: "center" }}>or</p>
                     <Button className="rounded-pill" onClick={handleShowSignUp}>
                         Create an account
@@ -124,6 +184,15 @@ export default function AuthPage() {
                                     placeholder="Password"
                                 />
                             </Form.Group>
+
+
+                            {errorMessage && (
+                                <div className="error-message" style={{ color: "red" }}>
+                                    {errorMessage}
+                                </div>
+                            )}
+
+
                             <p style={{ fontSize: "12px" }}>
                                 By signing up, you agree to the Terms of Service and Privacy
                                 Policy, including Cookie Use. SigmaTweets may use your contact
@@ -137,6 +206,11 @@ export default function AuthPage() {
                             <Button className="rounded-pill" type="submit">
                                 {modalShow === "SignUp" ? "Sign up" : "Log in"}
                             </Button>
+
+                            <Button className="rounded-pill" onClick={handlePasswordReset}>
+                                Forgot password? Reset it here
+                            </Button>
+
                         </Form>
                     </Modal.Body>
                 </Modal>

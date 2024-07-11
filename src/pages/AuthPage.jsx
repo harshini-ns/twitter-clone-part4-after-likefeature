@@ -132,6 +132,10 @@ export default function AuthPage() {
                         <i className="bi bi-facebook"></i> Sign up with Facebook
                     </Button>
 
+                    <Button className="rounded-pill" variant="outline-dark" >
+                        <i className="bi bi-github"></i> Sign up with github
+                    </Button>
+
 
                     <p style={{ textAlign: "center" }}>or</p>
                     <Button className="rounded-pill" onClick={handleShowSignUp}>
